@@ -27,7 +27,7 @@ def random_ipv4(foo: int) -> list:
 def host_ping(bar: list):
     """Проверяет доступность ip адресов.
 
-    -w 2 -- отстанавливаем пинг через 2 сек, на тот случай если ip мертв
+    -w 2 -- останавливаеn пинг через 2 сек, на тот случай если ip мертв
     -с 2 -- отправляем 2 пакета больше не нужно для наших целей
     :param bar: список узлов
     :return: Узел доступен/Узел недоступен
@@ -60,29 +60,38 @@ def host_range_ping(number: int, ip: str) -> list:
             bar.append(foo+i)
         return bar
     except TypeError:
-        print("Введите целое число")
+        print('Введите целое число')
 
 # 3. Написать функцию host_range_ping_tab(), возможности которой основаны на функции из примера 2. Но в данном случае
 # результат должен быть итоговым по всем ip-адресам, представленным в табличном формате (использовать модуль tabulate).
 
 
-def host_range_ping_tab(bar):
+def host_range_ping_tab(bar: list) -> str:
+    """Функция распределяет переданные аругментом список ip адресов на те
+    которые пингуются и нет.
+
+    :param bar: Список ip адресов
+    :return: Две колонки с работающими и не работающими ip адресами
+    """
     reach, unreach = [], []
-    for i in bar:
-        p = subprocess.Popen(f'ping {i} -w 2 -c 2',
-                             shell=True, stdout=subprocess.PIPE)
-        if re.search('100% packet loss', p.stdout.read().decode()):
-            unreach.append(i)
-            print(f'Узел {i} не доступен')
-        else:
-            reach.append(i)
-            print(f'Узел {i} доступен')
-    ip = {'Reachable': reach, 'Unreachable': unreach}
-    print(tabulate(ip, headers='keys'))
+    try:
+        for i in bar:
+            p = subprocess.Popen(f'ping {i} -w 2 -c 2',
+                                 shell=True, stdout=subprocess.PIPE)
+            if re.search('100% packet loss', p.stdout.read().decode()):
+                unreach.append(i)
+                print(f'Узел {i} не доступен')
+            else:
+                reach.append(i)
+                print(f'Узел {i} доступен')
+        ip = {'Reachable': reach, 'Unreachable': unreach}
+        print(tabulate(ip, headers='keys'))
+    except TypeError:
+        print('Передайте аргументом список ip адресов')
 
 
-# bar = random_ipv4(5)
-# print(host_ping(bar))
-bar = (host_range_ping(8.2, '87.250.250.250'))
-# print(host_ping(bar))
-print(host_range_ping_tab(bar))
+if __name__ == '__main__':
+    bar = random_ipv4(5)
+    foo = (host_range_ping(8, '87.250.250.250'))
+    print(host_ping(bar))
+    print(host_range_ping_tab(foo))
