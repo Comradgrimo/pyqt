@@ -89,7 +89,13 @@ def host_range_ping_tab(bar: list) -> str:
     except TypeError:
         print('Передайте аргументом список ip адресов')
 
+# 4. Продолжаем работать над проектом «Мессенджер»:
+# a) Реализовать скрипт, запускающий два клиентских приложения: на чтение чата и на запись в него. Уместно использовать модуль subprocess).
 
+for i in range(2):
+    p = subprocess.call('xfce4-terminal -H -e "python3 client_6.py"', executable='/bin/bash', shell=True)
+
+# b) Реализовать скрипт, запускающий указанное количество клиентских приложений.
 if __name__ == '__main__':
     bar = random_ipv4(5)
     foo = (host_range_ping(8, '87.250.250.250'))
