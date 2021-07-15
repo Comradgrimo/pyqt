@@ -71,12 +71,32 @@ def write_responses(requests, w_clients, all_clients):
             except OSError:
                 pass
 
-def mainloop():
-    """ Основной цикл обработки запросов клиентов
-    """
-    address = ('localhost', 7777)
-    clients = []
 
+class MyDescriptor(object):
+    """Это класс дескриптора."""
+
+    def __init__(self, value):
+        self.value = value
+
+    def __get__(self, instance, owner):
+        if self.value <= 0:
+            AttributeError('Порт должен быть больше 0')
+        return self.value
+
+    def __set__(self, instance, value):
+        return self.value
+
+
+class ServerSock():
+    port_v = MyDescriptor(7777)
+
+
+if __name__ == '__main__':
+    print('Эхо-сервер запущен!')
+    s = ServerSock()
+
+    clients = []
+    address = ('localhost', s.port_v)
     s = socket(AF_INET, SOCK_STREAM)
     s.bind(address)
     s.listen(5)
@@ -103,8 +123,3 @@ def mainloop():
             if requests:
                 # print(requests)
                 write_responses(requests, w, clients)  # Выполним отправку ответов клиентам
-
-
-print('Эхо-сервер запущен!')
-mainloop()
-
