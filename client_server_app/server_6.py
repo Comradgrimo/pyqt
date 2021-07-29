@@ -1,125 +1,135 @@
-import select
-from response import ServerResponse
-from socket import socket, AF_INET, SOCK_STREAM
+import socket
+import threading
 import json
-import argparse
-# from logger import log, get_logger
+from client_server_app.response import ServerResponse
+import dis
+import inspect
 
-DEBUG = False
+connections = []
+total_connections = 0
 my_resp = ServerResponse()
-# info_logger = get_logger("server", 'server.log')
+resp_ok = my_resp.response(200, 'ok')
 
 
-def create_conn():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--port', dest='port', default='7777')
-    parser.add_argument('-a', '--address', dest='ip', default='localhost')
-    args = parser.parse_args()
-    return args
+class PortValidator:
 
-def read_requests(r_clients, all_clients):
-    """ Чтение запросов из списка клиентов
-    """
-    responses = {}  # Словарь ответов сервера вида {сокет: запрос}
-
-    for sock in r_clients:
-        try:
-            data = sock.recv(1024).decode('utf-8')
-            responses[sock] = data
-        except:
-            print('Клиент {} {} отключился'.format(sock.fileno(), sock.getpeername()))
-            all_clients.remove(sock)
-
-    return responses
-
-
-# @log("call.log")
-def write_responses(requests, w_clients, all_clients):
-    """ Эхо-ответ сервера клиентам, от которых были запросы
-    """
-    resp_ok = my_resp.response(200, 'ok')
-    for sock in w_clients:
-        if sock in requests:
-            # try:
-                # Подготовить и отправить ответ сервера
-            jdata = json.loads(requests[sock])
-            # info_logger.info(f'Получено: {jdata}')
-            if jdata.get("from") is not None:
-                print(f'{jdata.get("from")} написал {jdata.get("message")} ')
-                # print(f'Получено: {jdata}')                           #-->> В ЛОГИ
-            # print('jdata ', jdata)
-            try:
-                if jdata.get('user').get('account_name'):
-                    # print(resp_ok)
-                    # info_logger.info(f"Подключился {jdata.get('user').get('account_name')}")
-                    print(f"Подключился {jdata.get('user').get('account_name')}")
-                    msg = json.dumps(resp_ok)
-                    msg.encode('utf-8')
-                    sock.send(msg.encode('utf-8'))
-            except AttributeError:
-                pass
-            if jdata.get('action') == 'quit':
-                # info_logger.info(f'Клиент {jdata.get("client_name")} отключился')
-                print(f'Клиент {jdata.get("client_name")} отключился')
-                sock.close()
-                all_clients.remove(sock)
-            try:
-                msg = json.dumps(resp_ok)
-                # info_logger.info(f'Отправлено: {msg}')
-                # print(f'Отправлено: {msg}')                        #-->> В ЛОГИ
-                sock.send(msg.encode('utf-8'))
-            except OSError:
-                pass
-
-
-class MyDescriptor(object):
-    """Это класс дескриптора."""
-
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, default=7777):
+        self.default = default
+        self.value = None
 
     def __get__(self, instance, owner):
-        if self.value <= 0:
-            AttributeError('Порт должен быть больше 0')
-        return self.value
+
+        return self.value or self.default
 
     def __set__(self, instance, value):
-        return self.value
+        print('qqq')
+        if type(value) != type(1):
+            raise TypeError('Порт должен быть целым числом')
+        if value <= 0:
+            raise AttributeError('Порт должен быть больше 0')
 
 
-class ServerSock():
-    port_v = MyDescriptor(7777)
+def find_forbidden_methods_call(func, method_names):
+    for instr in dis.get_instructions(func):
+        if instr.opname == 'LOAD_METHOD' and instr.argval in method_names:
+            return instr.argval
 
 
-if __name__ == '__main__':
-    print('Эхо-сервер запущен!')
-    s = ServerSock()
+class ClientMeta(type):
+    port = PortValidator()
+    forbidden_method_names = ('bind', 'AF_INET')
 
-    clients = []
-    address = ('localhost', s.port_v)
-    s = socket(AF_INET, SOCK_STREAM)
-    s.bind(address)
-    s.listen(5)
-    s.settimeout(0.2)  # Таймаут для операций с сокетом
-    while True:
-        try:
-            conn, addr = s.accept()  # Проверка подключений
-        except OSError as e:
-            pass  # timeout вышел
-        else:
-            # print(f"Получен запрос на соединение от {str(addr)}")         -->> В ЛОГИ
-            clients.append(conn)
-        finally:
-            # Проверить наличие событий ввода-вывода
-            wait = 3
-            r = []
-            w = []
+    def __new__(cls, name, bases, class_dict):
+        for _, value in class_dict.items():
+            if inspect.isfunction(value):
+                method_name = find_forbidden_methods_call(
+                    value, cls.forbidden_method_names)
+                if method_name:
+                    raise ValueError(
+                        f'called forbidden method "{method_name}"')
+            elif isinstance(value, socket.socket):
+                raise ValueError(
+                    'Socket object cannot be defined in class definition')
+            return type.__new__(cls, name, bases, class_dict)
+
+
+class Server(threading.Thread, metaclass=ClientMeta):
+    def __init__(self, socket, address, id, name, signal):
+        threading.Thread.__init__(self)
+        self.socket = socket
+        self.address = address
+        self.id = id
+        self.name = name
+        self.signal = signal
+
+    def __str__(self):
+        return str(self.id) + ' ' + str(self.address)
+
+    def run(self):
+        while self.signal:
             try:
-                r, w, e = select.select(clients, clients, [], wait)
+                data = self.socket.recv(1024)
+                print(data)
             except:
-                pass  # Ничего не делать, если какой-то клиент отключился
+                print('Client ' + str(self.address) + ' has disconnected')
+                self.signal = False
+                connections.remove(self)
+                break
+            # Получаем от клиента
+            if data != '':
+                msg = data.decode('utf-8')
+                jdata = json.loads(msg)
+                try:
+                    if jdata.get('user').get('account_name') is not None:
+                        account_name = jdata.get('user').get('account_name')
+                        self.name = account_name
+                        print(f'Подключился {account_name}')
+                except AttributeError:
+                    pass
+                if jdata.get('from') is not None:
+                    print(f'{jdata.get("from")} написал {jdata.get("message")} ')
 
-            requests = read_requests(r, clients)  # Сохраним запросы клиентов
-            if requests:
-                # print(requests)
-                write_responses(requests, w, clients)  # Выполним отправку ответов клиентам
+                for client in connections:
+                    msg_to_client = json.dumps(resp_ok)
+                    msg_to_client.encode('utf-8')
+
+                    to = jdata.get('to')
+                    if to == client.name:  # Отправка конкретному пользователю
+                        client.socket.sendall(msg_to_client.encode('utf-8'))
+                        msg_to_client_1 = f'{jdata.get("from")} написал {jdata.get("message")}'
+                        print(msg_to_client_1)
+                        client.socket.sendall(msg_to_client_1.encode('utf-8'))
+                        continue
+
+                    if client.name == jdata.get('from'):
+                        client.socket.sendall(msg_to_client.encode('utf-8'))
+
+                    if client.id != self.id:
+                        client.socket.sendall(
+                            (f'{jdata.get("from")} написал1 {jdata.get("message")}').encode('utf-8'))
+
+    def main():
+        # Get host and port
+        host = 'localhost'
+        port = Server.port
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind((host, port))
+        sock.listen(5)
+        return sock
+
+
+def newConnections(socket):
+    while True:
+        sock, address = socket.accept()
+        global total_connections
+        connections.append(
+            Server(sock, address, total_connections, 'Name', True))
+        connections[len(connections) - 1].start()
+        print('New connection at ID ' + str(connections[len(connections) - 1]))
+        total_connections += 1
+
+
+newConnectionsThread = threading.Thread(
+    target=newConnections, args=(Server.main(),))
+newConnectionsThread.start()

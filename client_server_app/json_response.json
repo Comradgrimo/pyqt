@@ -19,13 +19,13 @@
 },
 
 {
-        "action": "presence",
-        "time": "time",
-        "type": "status",
-        "user": {
-                "account_name":  "account_name",
-                "status":      "Yep, I am here!"
-        }
+      "action": "presence",
+      "time": "time",
+      "type": "status",
+      "user": {
+              "account_name":  "account_name",
+              "status":      "Yep, I am here!"
+      }
 },
   {
     "action": "msg",
@@ -34,6 +34,11 @@
     "from": "account_name",
     "encoding": "utf-8",
     "message": "message"
+},
+  {
+    "action": "get_contacts",
+    "time": "time",
+    "user_login": "login"
 }
 
   ]
