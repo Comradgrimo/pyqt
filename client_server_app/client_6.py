@@ -1,33 +1,12 @@
-from socket import *
+import socket
+import threading
+import sys
 import json
 from datetime import datetime
-from response import ServerResponse
-# from logger import log, get_logger
-# info_logger = get_logger("client", 'client.log')
-#
-# @log("client.log")
-def authorized(user: str, pswrd: str, openfile: list) -> str:
-    for i in openfile:
-        if user in i:
-            return user
-    open_file('user.json', 'w', {user: pswrd})  # Здесь должно быть добавление в базу
+from client_server_app.response import ServerResponse
 
 
-def open_file(name: str, flag: str, info=None) -> list:           # Здесь должно быть чтение из базы
-    if flag != "w":
-        with open(f'{name}', f'r', encoding='utf-8') as f_n:
-            objs = json.load(f_n)
-        return objs
-    else:
-        with open(f'{name}', 'r', encoding='utf-8') as f_n:
-            objs = json.load(f_n)
-            objs.append(dict(info))
-        # print(objs)
-        with open(f'{name}', 'w', encoding='utf-8') as f_n:
-            json.dump(objs, f_n)
-        return objs
-
-
+# Ожидание входящих данных от сервера
 def send_json(arg: dict) -> bytes:
     return json.dumps(arg).encode('utf-8')
 
@@ -36,50 +15,49 @@ def current_time() -> str:
     return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
-def echo_client():
-    with socket(AF_INET, SOCK_STREAM) as sock:  # Создать сокет TCP
-        sock.connect(ADDRESS)  # Соединиться с сервером
-        # Готовим приветствие
-        msg = send_json(my_resp.presence(login, current_time()))
-        # Отсылаем приветствие
-        sock.send(msg)
-        # Получаем ответ на приветствие
-        data = sock.recv(1024).decode('utf-8')
-        # print('data ', data)                          --> В ЛОГИ
-        # foo = json.loads(data)
-        # print('foo ', foo)
-        # if foo['response'] == 200:  # ДОДЕЛАТЬ ВОЗМОЖНЫЕ КОДЫ ОШИБОК
-        #     print(f'Добро пожаловать {login}')
-
-        while True:
-            msg = input('Ваше сообщение: ')
-            if msg == '_exit':
-                sock.send(send_json(my_resp.exit(login)))
-                print('exit')
-                # logger.info('Выход')
-                break
-            msg_server = my_resp.msg(current_time(), 'all', aut, msg)
-            # print(msg_server, type(msg_server))
-            to_server = send_json(msg_server)
-            sock.send(to_server)
-            # print(f'Вы отправили:{msg}')                      -->> В ЛОГИ
-
-            # sock.send(msg.encode('utf-8'))  # Отправить!
-            # data = sock.recv(1024).decode('utf-8')
-            # print('Ответ:', data)
+def receive(socket, signal):
+    """Ожидание входящих данных от сервера."""
+    while signal:
+        try:
+            data = socket.recv(1024)
+            msg = str(data.decode('utf-8'))
+            if msg[0:4] != 'None':
+                print(msg)
+        except:
+            print('You have been disconnected from the server')
+            signal = False
+            break
 
 
-if __name__ == '__main__':
+# Get host and port
+host = 'localhost'
+port = 7777
+my_resp = ServerResponse()
+login = 'comrad'
+# Попытка подключения к серверу
+try:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((host, port))
+except:
+    print('Could not make a connection to the server')
+    input('Press enter to quit')
+    sys.exit(0)
+msg = send_json(my_resp.presence(login, current_time()))
+sock.sendall(msg)
+# Создаем новый поток для ожидания данных
+receiveThread = threading.Thread(target=receive, args=(sock, True))
+receiveThread.start()
 
-    ADDRESS = ('localhost', 7777)
-    my_resp = ServerResponse()
-    login = 'Comrad'
-    while True:  # ДОДЕЛАТЬ ОБРАБОТКУ ВВОДА
-        # login = input('Введите новый логин: ')
-        login = 'Comrad'
-        # pswrd = input('Введите новый пароль: ')
-        pwd = '123'
-        break
-    foo = open_file('user.json', 'r')
-    aut = authorized(login, pwd, foo)
-    echo_client()
+while True:
+    message = input('Введите сообщение: \n')
+
+    # Отправка конкретному пользователю
+    if message.startswith('#'):
+        to = message.split()[0][1:]
+        message = ' '.join(message.split()[1:])
+        msg_server = my_resp.msg(current_time(), to, login, message)
+    else:
+        msg_server = my_resp.msg(current_time(), 'all', login, message)
+
+    to_server = send_json(msg_server)
+    sock.sendall(to_server)
