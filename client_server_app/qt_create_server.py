@@ -5,11 +5,14 @@ import socket
 import threading
 import json
 from client_server_app.response import ServerResponse
-
+from datetime import datetime
 
 connections = []
 total_connections = 0
 my_resp = ServerResponse()
+
+def current_time() -> str:
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 class Client(threading.Thread):
     def __init__(self, socket, address, id, name, signal):
@@ -19,9 +22,9 @@ class Client(threading.Thread):
         self.id = id
         self.name = name
         self.signal = signal
-
+        self.time = current_time()
     def __str__(self):
-        return str(self.id) + ' ' + str(self.address)
+        return str(f'Адрес - {self.address}, Имя - {self.name}, Время подключения - {self.time}')
 
     # Попытка получить данные от клиента
     # Если это невозможно, предположите, что клиент отключился, и удалите его из данных сервера
@@ -46,6 +49,7 @@ class Client(threading.Thread):
                     if jdata.get('user').get('account_name') is not None:
                         account_name = jdata.get('user').get('account_name')
                         self.name = account_name
+                        self.time = current_time()
                         print(f'Подключился {account_name}')
                 except AttributeError:
                     pass
@@ -93,11 +97,9 @@ class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
 
     def my_func(self):
         self.listWidget.clear()
-        self.listWidget.addItem('sds')
-        print(self.lineEdit.text())
-        # if directory:
-        #     for file_name in os.listdir(directory):
-        #         self.listWidget.addItem(file_name)
+        for i in connections:
+            self.listWidget.addItem(str(i))
+
 
     def newConnections(self,socket):
         while True:
@@ -109,7 +111,6 @@ class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
             print('New connection at ID ' + str(connections[len(connections) - 1]))
             total_connections += 1
 
-
     def start_server(self):
         # Get host and port
         host = 'localhost'
@@ -119,7 +120,6 @@ class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind((host, port))
         sock.listen(5)
-
         # Create new thread to wait for connections
         newConnectionsThread = threading.Thread(
             target=self.newConnections, args=(sock,))

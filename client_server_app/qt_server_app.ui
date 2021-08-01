@@ -16,14 +16,14 @@
   <widget class="QPushButton" name="pushOk">
    <property name="geometry">
     <rect>
-     <x>300</x>
-     <y>540</y>
-     <width>84</width>
-     <height>25</height>
+     <x>290</x>
+     <y>130</y>
+     <width>261</width>
+     <height>51</height>
     </rect>
    </property>
    <property name="text">
-    <string>PushButton</string>
+    <string>Получить список подключеных пользователей</string>
    </property>
   </widget>
   <widget class="QPushButton" name="pushExit">
@@ -43,23 +43,36 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>10</y>
+     <y>50</y>
      <width>256</width>
-     <height>461</height>
+     <height>151</height>
     </rect>
    </property>
   </widget>
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
-     <x>300</x>
-     <y>340</y>
+     <x>290</x>
+     <y>80</y>
      <width>181</width>
-     <height>121</height>
+     <height>41</height>
     </rect>
    </property>
    <property name="text">
     <string>СТАРТ СЕРВЕР</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>20</y>
+     <width>121</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Пользователи онлайн</string>
    </property>
   </widget>
   <widget class="QWidget" name="">
