@@ -10,7 +10,7 @@ from client_server_app.response import ServerResponse
 connections = []
 total_connections = 0
 my_resp = ServerResponse()
-resp_ok = my_resp.response(200, 'ok')
+
 class Client(threading.Thread):
     def __init__(self, socket, address, id, name, signal):
         threading.Thread.__init__(self)
@@ -52,8 +52,11 @@ class Client(threading.Thread):
                 if jdata.get("from") is not None:
                     print(f'{jdata.get("from")} написал {jdata.get("message")} ')
 
+                client_list = [client.name for client in connections]
+
                 for client in connections:
                     # if client.name == msg.get('name'):
+                    resp_ok = my_resp.response(200, 'ok')
                     msg_to_client = json.dumps(resp_ok)
                     msg_to_client.encode('utf-8')
                     # client.socket.sendall(msg.encode('utf-8'))
@@ -71,6 +74,11 @@ class Client(threading.Thread):
 
                     if client.id != self.id:
                         client.socket.sendall((f'{jdata.get("from")} написал1 {jdata.get("message")}').encode('utf-8'))
+
+                    if jdata.get('action') == 'get_contacts':
+                        print('Пользователь запросил список контактов')
+                        client.socket.sendall(json.dumps(my_resp.response(200, client_list)).encode('utf-8'))
+
 
 class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
     def __init__(self):
