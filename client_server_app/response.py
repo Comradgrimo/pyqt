@@ -69,6 +69,16 @@ class ServerResponse(object):
                 msg['message'] = message
                 return msg
 
+    def getcontacts(self, time,login):
+        """
+        msg
+        """
+        for i in objs:
+            if i.get('action') == 'get_contacts':
+                getcontacts = i
+                getcontacts['time'] = time
+                getcontacts['user_login'] = login
+                return getcontacts
 
 if __name__ == "__main__":
 
@@ -78,3 +88,4 @@ if __name__ == "__main__":
     print(foo.exit('Comrad'))
     print(foo.presence('Comrad', current_time))
     print(foo.msg(current_time, 'all', 'Comrad', 'Hello'))
+    print(foo.getcontacts(current_time,'Comrad'))

@@ -56,6 +56,8 @@ while True:
         to = message.split()[0][1:]
         message = ' '.join(message.split()[1:])
         msg_server = my_resp.msg(current_time(), to, login, message)
+    elif message[0:11] == 'getcontacts':
+        msg_server = my_resp.getcontacts(current_time(), login)
     else:
         msg_server = my_resp.msg(current_time(), 'all', login, message)
 
