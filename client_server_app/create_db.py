@@ -1,89 +1,65 @@
-# 1. Начать реализацию класса «Хранилище» для серверной стороны. Хранение необходимо осуществлять в базе данных.
-# В качестве СУБД использовать sqlite. Для взаимодействия с БД можно применять ORM.
-# Опорная схема базы данных:
-# На стороне сервера БД содержит следующие таблицы:
-# a) клиент:
-# * логин;
-# * информация.
-# b) историяклиента:
-# * время входа;
-# * ip-адрес.
-# c) списокконтактов (составляется на основании выборки всех записей с id_владельца):
-# * id_владельца;
-# * id_клиента.
-from sqlalchemy import create_engine,Table, Column, Integer, String, MetaData,DateTime, ForeignKey
+from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-
-
-engine = create_engine('sqlite:///sqlite3.db', echo=True)
-
-# metadata = MetaData()
-# client_table = Table('client', metadata,
-#     Column('id', Integer, primary_key=True),
-#     Column('login', String),
-#     Column('password', String),
-#     Column('info', String)
-# )
-# client_history = Table('client_history', metadata,
-#     Column('id', Integer, primary_key=True),
-#     Column('time', DateTime)
-# )
-# contact_list = Table('contact_list', metadata,
-#     Column('id', Integer, primary_key=True),
-#     Column('id_master', Integer, primary_key=True),
-#     Column('id_client', Integer)
-# )
-#
-# metadata.create_all(engine)
-
+from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
 
-
-class Client(Base):
+class Client_db(Base):
     __tablename__ = 'client'
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     login = Column(String)
     password = Column(String)
     info = Column(String)
-    client_history = Column(Integer)
-    contact_list = Column(Integer)
 
-
-    def __init__(self, login, password, info, client_history, contact_list):
+    def __init__(self, login, password, info):
         self.login = login
         self.password = password
         self.info = info
-        self.client_history = client_history
-        self.contact_list = contact_list
+
     def __repr__(self):
-        return "<Client('%s','%s', '%s', '%s', '%s')>" % (self.login, self.password, self.info, self.client_history, self.contact_list)
+        return "<Client('%s','%s')>" % (self.login, self.info)
 
 
-class ClientHistory(Base):
-    __tablename__ = 'client_history'
-    id = Column(Integer, primary_key=True)
-    message = Column(String)
-    time = Column(DateTime)
+class Message_db(Base):
+    __tablename__ = 'message'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    id_client = Column(ForeignKey('client.id'))
+    datetime = Column(DateTime)
+    content = Column(String)
 
-    def __init__(self, message, time):
-        self.message = message
-        self.time = time
+    def __init__(self, id_client, datetime, content):
+        self.id_client = id_client
+        self.datetime = datetime
+        self.content = content
+
     def __repr__(self):
-        return "<Client_history('%s', '%s')>" % (self.message, self.time)
+        return "<Client_history('%s', '%s', '%s')>" % (self.message, self.datetime, self.content)
 
 
-class ContactList(Base):
+class ContactList_db(Base):
     __tablename__ = 'contact_list'
     id = Column(Integer, primary_key=True)
-    id_master = Column(Integer)
-    id_client = Column(Integer)
+    id_master = Column(ForeignKey('client.id'))
+    id_slave = Column(ForeignKey('client.id'))
 
-    def __init__(self, id_master, id_client):
+    def __init__(self, id_master, id_slave):
         self.id_master = id_master
-        self.id_client = id_client
-
+        self.id_slave = id_slave
 
     def __repr__(self):
-        return "<Client('%s', '%s')>" % (self.id_master, self.id_client)
-Base.metadata.create_all(engine)
+        return "<Client('%s', '%s')>" % (self.id_master, self.id_slave)
+
+
+
+base = 'sqlite3.db'
+engine = create_engine(f'sqlite:///{base}', echo=True)
+# Base.metadata.create_all(engine)              #Создание БД
+Session = sessionmaker(bind=engine)
+Session.configure(bind=engine)
+session = Session()
+admin_user = Client_db("vasia", "123", "info")
+session.add(admin_user)
+session.commit()
+
+q_user = session.query(Client_db).all()
+print(q_user[0].login)

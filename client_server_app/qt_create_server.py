@@ -6,7 +6,7 @@ import threading
 import json
 from client_server_app.response import ServerResponse
 from datetime import datetime
-
+# from create_db import Client_db, Message_db, ContactList_db
 connections = []
 total_connections = 0
 my_resp = ServerResponse()
@@ -90,12 +90,12 @@ class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
         self.connections = []
         self.my_resp = ServerResponse()
         self.setupUi(self)
-        self.pushOk.clicked.connect(self.my_func)
+        self.pushOk.clicked.connect(self.get_contacts)
         self.pushButton.clicked.connect(self.start_server)
         self.pushExit.clicked.connect(QtWidgets.qApp.quit)
 
 
-    def my_func(self):
+    def get_contacts(self):
         self.listWidget.clear()
         for i in connections:
             self.listWidget.addItem(str(i))
@@ -112,10 +112,9 @@ class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
             total_connections += 1
 
     def start_server(self):
-        # Get host and port
-        host = 'localhost'
-        port = 7777
-
+        # Добавить сюда отбработчик ошибок
+        host = str(self.lineEdit.text())
+        port = int(self.lineEdit_2.text())
         # Create new server socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind((host, port))
