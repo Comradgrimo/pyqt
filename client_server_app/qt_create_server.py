@@ -1,6 +1,6 @@
 import sys  # sys нужен для передачи argv в QApplication
 from PyQt5 import QtWidgets
-from client_server_app import qt_server_app
+from client_server_app import qt_server_form_app
 import socket
 import threading
 import json
@@ -84,7 +84,7 @@ class Client(threading.Thread):
                         client.socket.sendall(json.dumps(my_resp.response(200, client_list)).encode('utf-8'))
 
 
-class ExampleApp(QtWidgets.QMainWindow, qt_server_app.Ui_Dialog):
+class ExampleApp(QtWidgets.QMainWindow, qt_server_form_app.Ui_Dialog):
     def __init__(self):
         super().__init__()
         self.connections = []
